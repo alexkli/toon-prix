@@ -16,6 +16,7 @@ Run: serve this folder over HTTP (ES modules need it), e.g. `python3 -m http.ser
 
 - Modes: Quick Race, Championship (6 rounds, 3 save slots), fully automatic "Watch a Race"; autopilot toggle while driving.
 - Cameras: Chase, Onboard, TV, Helicopter, Drone, Mini Circuit (tilt-shift model-railway view), Director.
+- Replay: every race is recorded; "Replay" on the results screen plays it back with any camera, pause, 0.25×–4× speed and a scrub bar.
 - Saving: localStorage. Championships auto-save after each race; a race in progress is saved on "Save & quit" or when the page is hidden.
 - Sound: synthesised engines and procedural background music. Optional Spotify soundtrack: sign in from Settings (OAuth PKCE, Spotify Premium; plays via the Web Playback SDK or a running Spotify app). The Spotify app's redirect URI must be the page URL, e.g. `https://alexkli.github.io/toon-prix/`.
 - Keys: arrows/WASD, Space boost, C camera, T autopilot, R reset, P pause, M mute.

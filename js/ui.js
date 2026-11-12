@@ -214,7 +214,7 @@ export class Menus {
     const me = res.find((r) => r.isPlayer);
     this.set(el('div', { class: 'scr', style: 'width:min(60em,100%)' },
       el('div', { class: 'row sb nw' }, el('h2', { class: 'title' }, me ? `You finished ${ord(me.pos)}!` : `${top[0].name} wins!`),
-        el('div', { class: 'row nw' }, !champ && this.btn('Again', 'white small', () => a.restart()), this.btn(champ ? 'Standings' : 'Menu', 'red', () => (champ ? this.hub(ses.slot) : (a.preview(), this.main()))))),
+        el('div', { class: 'row nw' }, a.canReplay && this.btn('🎬 Replay', 'blue small', () => a.replay()), !champ && this.btn('Again', 'white small', () => a.restart()), this.btn(champ ? 'Standings' : 'Menu', 'red', () => (champ ? this.hub(ses.slot) : (a.preview(), this.main()))))),
       el('div', { class: 'panel' }, champ ? el('div', { class: 'two' }, el('div', {}, pod, table), el('div', {}, el('div', { class: 'label', style: 'margin-top:0' }, 'Championship'), this.standingsTable(champ, gained))) : el('div', {}, pod, table))));
   }
 

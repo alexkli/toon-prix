@@ -9,6 +9,7 @@ import { Sound } from './audio.js';
 import { store, applyResults, champGrid, quickGrid } from './store.js';
 import { Menus, Hud, banner, toast, confetti, ord } from './ui.js';
 import { G, INK, fmtTime } from './util.js';
+import { Recorder, Replay } from './replay.js';
 import { parseSpotify, sp, handleRedirect, showDock, pause as spotifyPause, setVolume as spotifyVolume } from './spotify.js';
 
 const $ = (s) => document.querySelector(s);
@@ -32,6 +33,7 @@ marker.children[1].scale.setScalar(1.25);
 marker.rotation.x = Math.PI;
 scene.add(marker);
 
+let recorder = null, replay = null, lastGained = null;
 let world = null, race = null, session = null, focus = null, focusLock = false, paused = false, time = 0, pr = 1, slow = 0, wrongT = 0;
 
 const app = {
@@ -79,7 +81,7 @@ const app = {
     toast(`${m.icon} ${m.name}${id === 'circuit' ? ' · drag to rotate, pinch to zoom' : ''}`);
   },
   pickFocus(car) {
-    if (race.player && !race.player.auto && !race.player.finished) return;
+    if (!replay && race.player && !race.player.auto && !race.player.finished) return;
     if (focusLock && focus === car) { focusLock = false; toast('🎬 Director picks the car'); return; }
     focus = car; focusLock = true; rig.snap = true;
     toast(`🎥 Following ${car.driver.name}`);
@@ -97,6 +99,23 @@ const app = {
     pr = s.quality === 'low' ? 1 : Math.min(devicePixelRatio || 1, s.quality === 'high' ? 3 : 2);
     resize();
   },
+  get canReplay() { return !!(recorder && recorder.ok); },
+  replay() {
+    if (!app.canReplay) return;
+    replay = new Replay(race, recorder, (x, z) => fx.pop(x, z));
+    paused = false; menus.hide(); hud.show(true);
+    document.body.classList.add('replay'); $('#replaybar').classList.remove('hidden');
+    $('#rp-speed').textContent = '1×';
+    focus = race.player || race.order[0]; focusLock = !!race.player;
+    rig.setMode('director');
+    toast('🎬 Replay · tap a driver to follow, 🎥 for cameras', 3000);
+  },
+  endReplay(showResults = true) {
+    if (!replay) return;
+    replay.restore(); replay = null;
+    document.body.classList.remove('replay'); $('#replaybar').classList.add('hidden');
+    if (showResults) { hud.show(false); rig.setMode('director'); menus.results(race, session, lastGained); }
+  },
   applyVolumes() {
     const s = store.data.settings;
     sound.setVolumes(s.sfxVol, s.musicVol);
@@ -108,6 +127,7 @@ let wasSpotify = false;
 const menus = new Menus(app), hud = new Hud(app);
 
 function load(cfg, saved) {
+  app.endReplay(false);
   if (world) {
     scene.remove(world.group); world.dispose();
     for (const c of race.cars) { scene.remove(c.mesh.group); c.mesh.group.traverse((o) => { if (o.geometry && !Object.values(G).includes(o.geometry)) o.geometry.dispose(); }); }
@@ -120,6 +140,7 @@ function load(cfg, saved) {
   const attract = cfg.kind === 'attract';
   race = new Race(world, cfg.grid.map((id) => ({ driverId: id, isPlayer: id === cfg.playerId })), { laps: cfg.laps, difficulty: cfg.difficulty, aids: store.data.settings.aids, onEvent });
   for (const c of race.cars) scene.add(c.mesh.group);
+  recorder = cfg.kind === 'attract' ? null : new Recorder(race);
   session = cfg; focusLock = false; wrongT = 0;
   focus = race.player || race.order[0];
   if (saved) race.restore(saved);
@@ -136,7 +157,7 @@ function load(cfg, saved) {
 
 function onEvent(type, d) {
   const attract = session.kind === 'attract';
-  if (type === 'bonk') { fx.pop(d.x, d.z); if (!attract && (d.cars.includes(focus) || d.rel > 12)) sound.thud(d.cars.includes(focus) ? 0.3 : 0.1); return; }
+  if (type === 'bonk') { fx.pop(d.x, d.z); if (recorder) recorder.bonk(d.x, d.z); if (!attract && (d.cars.includes(focus) || d.rel > 12)) sound.thud(d.cars.includes(focus) ? 0.3 : 0.1); return; }
   if (type === 'wall') { if (d === focus && !attract) { sound.thud(0.35); fx.pop(d.x, d.z); } return; }
   if (attract) return;
   if (type === 'light') { hud.lights(d); sound.beep(440, 0.18); }
@@ -157,6 +178,7 @@ function finishSession(results) {
   if (session.kind === 'champ') gained = applyResults(store.data.slots[session.slot], id, results);
   store.data.resume = null;
   store.save();
+  lastGained = gained;
   rig.setMode('director');
   hud.show(false);
   menus.results(race, session, gained);
@@ -166,8 +188,12 @@ function finishSession(results) {
 const keys = {};
 const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'gas', KeyW: 'gas', ArrowDown: 'brake', KeyS: 'brake', Space: 'boost', ShiftLeft: 'boost', ShiftRight: 'boost' };
 addEventListener('keydown', (e) => {
-  if (e.target instanceof HTMLInputElement) return;
+  if (e.target instanceof HTMLInputElement && e.target.type !== 'range') return;
   sound.init();
+  if (replay) {
+    if (e.code === 'Space' || e.code === 'KeyP') { e.preventDefault(); if (!e.repeat) $('#rp-play').click(); return; }
+    if (e.code === 'Escape') { app.endReplay(); return; }
+  }
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = true; e.preventDefault(); return; }
   if (e.repeat || !session || session.kind === 'attract') return;
   if (e.code === 'KeyC' && !menus.open) cycleCam();
@@ -211,6 +237,15 @@ $('#b-pause').onclick = () => { sound.init(); app.setPaused(true); };
 $('#b-auto').onclick = () => { sound.init(); toggleAuto(); };
 $('#b-reset').onclick = () => { sound.init(); resetPlayer(); };
 
+// replay transport
+let seeking = false;
+$('#rp-play').onclick = () => { if (!replay) return; if (replay.t >= replay.dur) replay.seek(0); replay.playing = !replay.playing || replay.t === 0; };
+$('#rp-speed').onclick = () => { if (!replay) return; const sp = [1, 2, 4, 0.25, 0.5]; replay.speed = sp[(sp.indexOf(replay.speed) + 1) % sp.length]; $('#rp-speed').textContent = (replay.speed < 1 ? String(replay.speed).replace('0.', '.') : replay.speed) + '×'; };
+$('#rp-exit').onclick = () => app.endReplay();
+$('#rp-seek').addEventListener('pointerdown', () => { seeking = true; });
+for (const t of ['pointerup', 'pointercancel', 'change']) $('#rp-seek').addEventListener(t, () => { seeking = false; });
+$('#rp-seek').addEventListener('input', (e) => { if (replay) { replay.seek(e.target.value / 1000); rig.snap = true; } });
+
 // camera orbit / zoom gestures on the canvas
 const ptr = new Map();
 let pinch = 0;
@@ -242,7 +277,7 @@ addEventListener('resize', resize);
 addEventListener('orientationchange', () => setTimeout(resize, 200));
 if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 function autosave() {
-  if (session && session.kind !== 'attract' && race.state === 'racing') {
+  if (session && session.kind !== 'attract' && race.state === 'racing' && !replay) {
     store.data.resume = { cfg: session, race: race.serialize() };
     store.save();
     if (!paused && !menus.open) app.setPaused(true);
@@ -255,7 +290,7 @@ addEventListener('pagehide', autosave);
 // then stay there and pick up each following car as it comes to the line.
 function finishDirection() {
   rig.finishShot = false;
-  if (race.player || session.kind === 'attract' || race.state !== 'racing' || !(rig.mode === 'director' || rig.mode === 'tv')) return;
+  if ((race.player && !replay) || session.kind === 'attract' || race.state !== 'racing' || !(rig.mode === 'director' || rig.mode === 'tv')) return;
   const L = race.T.length;
   let next = null, lastFin = null;
   for (const c of race.cars) {
@@ -284,7 +319,7 @@ function finishDirection() {
   for (const c of group) ft.spread = Math.max(ft.spread, Math.hypot(c.x - ft.x, c.z - ft.z));
 }
 function pickDirectorFocus() {
-  if (race.player || focusLock || rig.finishShot) return focus;
+  if ((race.player && !replay) || focusLock || rig.finishShot) return focus;
   const o = race.order, rnd = Math.random();
   if (rnd < 0.35) focus = o[0];
   else {
@@ -302,9 +337,20 @@ function frame(now) {
   last = now;
   if (!race) return;
   const attract = session.kind === 'attract';
-  if (!paused) {
+  if (replay) {
+    time += dt;
+    replay.update(dt);
+    const rdt = replay.playing ? dt * replay.speed : 0;
+    for (const c of race.cars) { c.sync(rdt, time); if (rdt) fx.carFx(c, world.theme, rdt); }
+    fx.update(dt, camera);
+    world.update(dt, time);
+    if (!seeking) $('#rp-seek').value = Math.round((replay.t / replay.dur) * 1000);
+    $('#rp-time').textContent = fmtTime(race.time).slice(0, -3);
+    $('#rp-play').textContent = replay.playing ? '⏸' : replay.t >= replay.dur ? '↺' : '▶';
+  } else if (!paused) {
     time += dt;
     race.update(dt, readInput());
+    if (recorder) recorder.tick(dt);
     for (const c of race.cars) { c.sync(dt, time); fx.carFx(c, world.theme, dt); }
     fx.update(dt, camera);
     world.update(dt, time);
@@ -328,7 +374,7 @@ function frame(now) {
   }
   if (!attract) {
     hud.update(race, focus, dt);
-    const p = race.player, drive = p && !p.auto && !p.finished && !menus.open;
+    const p = race.player, drive = p && !p.auto && !p.finished && !menus.open && !replay;
     $('#touch').classList.toggle('hidden', !(isTouch && drive));
     $('#dash').style.bottom = isTouch && drive && innerWidth < 700 ? 'calc(var(--sb) + 7.5em)' : '';
   }
@@ -342,7 +388,7 @@ function frame(now) {
   const camD = camera.position.distanceTo(focus.mesh.group.position);
   sound.update({ v: focus.v, throttle: (focus.accel || 0) > 0 ? 1 : 0, dist: camD },
     rival && { v: rival.v, dist: rd, vr: ((rival.x - focus.x) * (Math.sin(rival.h) * rival.v - Math.sin(focus.h) * focus.v) + (rival.z - focus.z) * (Math.cos(rival.h) * rival.v - Math.cos(focus.h) * focus.v)) / Math.max(rd, 1) },
-    PERF.vmax, focus.skid, !attract && !paused && race.state !== 'done' && !menus.open, dt);
+    PERF.vmax, focus.skid, !attract && !paused && race.state !== 'done' && !menus.open && (!replay || replay.playing), dt);
   renderer.render(scene, camera);
   // adaptive resolution
   if (store.data.settings.quality === 'auto' && !paused) {
@@ -364,4 +410,4 @@ handleRedirect().then((ok) => {
 }).catch((e) => toast(e.message, 4000));
 requestAnimationFrame(frame);
 requestAnimationFrame(() => $('#loading').classList.add('gone'));
-window.__game = { app, get race() { return race; }, rig, get focus() { return focus; }, renderer };
+window.__game = { app, get recorder() { return recorder; }, get replay() { return replay; }, get race() { return race; }, rig, get focus() { return focus; }, renderer };

@@ -145,3 +145,14 @@ body:not(.menu) #spotify { transform: translateY(200%); }
 #spotify button:active { transform: scale(.92); }
 
 input.rng { flex: 1; min-width: 8em; height: 2em; accent-color: var(--blue); touch-action: pan-y; cursor: pointer; }
+
+#replaybar { position: fixed; left: 50%; bottom: calc(var(--sb) + .6em); transform: translateX(-50%); z-index: 12; width: min(40em, calc(100vw - 1.2em)); display: flex; align-items: center; gap: .5em;
+  background: var(--paper); border: .22em solid var(--ink); border-radius: 1.2em; box-shadow: .2em .25em 0 var(--ink); padding: .3em .6em; }
+#replaybar b { font-size: .8rem; white-space: nowrap; color: var(--red); }
+#replaybar button { min-width: 2.4em; height: 2.2em; border-radius: 1.1em; border: .18em solid var(--ink); background: var(--yellow); font-size: .9rem; font-weight: 900; padding: 0 .4em; flex: none; }
+#replaybar #rp-exit { background: #fff; }
+#rp-time { font-size: .8rem; font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
+@media (max-width: 520px) { #replaybar b { display: none; } }
+body.replay #b-auto, body.replay #b-reset, body.replay #b-pause { display: none; }
+body.replay #dash { bottom: calc(var(--sb) + 4.4em) !important; }
+body.replay #focusname { bottom: calc(var(--sb) + 8.4em); }
