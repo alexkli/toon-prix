@@ -23,3 +23,7 @@ Run: serve this folder over HTTP (ES modules need it), e.g. `python3 -m http.ser
 Code map: `data.js` (teams, drivers, circuits) · `trackmath.js` (spline, racing line, speed profile) · `world.js`/`props.js` (scenery) ·
 `car.js` (model, physics, AI) · `race.js` (rules, collisions, save/restore) · `cameras.js` · `ui.js` (menus, HUD) · `main.js`.
 `node tools/check-tracks.mjs` validates circuit layouts.
+
+---
+
+Created with Claude Fable 5.2 (Anthropic), from design and feedback by Alexander Klimetschek. All code, circuits, art and music were generated in conversation; no hand-written code or external assets apart from three.js.
