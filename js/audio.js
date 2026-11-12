@@ -2,23 +2,92 @@
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
-// ---- music data: 8 bars, 16 steps each. Chords as [root midi, minor?]; lead as midi notes (0 = rest) ----
-const CHORDS = [[48, 0], [43, 0], [45, 1], [41, 0], [48, 0], [43, 0], [41, 0], [43, 0]];
-const LEAD = [
-  [76, 0, 79, 0, 76, 0, 72, 0, 74, 76, 0, 0, 79, 0, 0, 0],
-  [74, 0, 79, 0, 74, 0, 71, 0, 72, 74, 0, 0, 67, 0, 0, 0],
-  [72, 0, 76, 0, 72, 0, 69, 0, 71, 72, 0, 76, 0, 0, 81, 0],
-  [77, 0, 0, 76, 0, 0, 72, 0, 74, 0, 72, 0, 69, 0, 0, 0],
-  [76, 0, 79, 0, 84, 0, 79, 0, 76, 79, 0, 0, 84, 0, 83, 0],
-  [79, 0, 0, 74, 0, 0, 79, 0, 83, 0, 81, 0, 79, 0, 74, 0],
-  [77, 0, 81, 0, 84, 0, 81, 0, 77, 0, 76, 0, 72, 0, 74, 0],
-  [74, 0, 0, 79, 0, 0, 83, 0, 86, 0, 0, 0, 79, 0, 83, 0],
+// ---- music data: each song is 8 bars of 16 steps. chords: [root midi, minor?]; lead: midi notes (0 = rest) ----
+const SONGS = [
+  {
+    name: 'Sunday Drive', bpm: [108, 136], swing: 0.12, lead: 'square', stab: [2, 6, 10, 14],
+    bass: [0, -1, 12, -1, 0, -1, 12, 7, 0, -1, 12, -1, 7, -1, 12, 7],
+    chords: [[48, 0], [43, 0], [45, 1], [41, 0], [48, 0], [43, 0], [41, 0], [43, 0]],
+    notes: [
+      [76, 0, 79, 0, 76, 0, 72, 0, 74, 76, 0, 0, 79, 0, 0, 0],
+      [74, 0, 79, 0, 74, 0, 71, 0, 72, 74, 0, 0, 67, 0, 0, 0],
+      [72, 0, 76, 0, 72, 0, 69, 0, 71, 72, 0, 76, 0, 0, 81, 0],
+      [77, 0, 0, 76, 0, 0, 72, 0, 74, 0, 72, 0, 69, 0, 0, 0],
+      [76, 0, 79, 0, 84, 0, 79, 0, 76, 79, 0, 0, 84, 0, 83, 0],
+      [79, 0, 0, 74, 0, 0, 79, 0, 83, 0, 81, 0, 79, 0, 74, 0],
+      [77, 0, 81, 0, 84, 0, 81, 0, 77, 0, 76, 0, 72, 0, 74, 0],
+      [74, 0, 0, 79, 0, 0, 83, 0, 86, 0, 0, 0, 79, 0, 83, 0],
+    ],
+  },
+  {
+    name: 'Pit Lane Ska', bpm: [116, 148], swing: 0, lead: 'triangle', stab: [2, 6, 10, 14],
+    bass: [0, -1, -1, 0, 7, -1, -1, 7, 0, -1, -1, 0, 7, -1, 12, -1],
+    chords: [[43, 0], [40, 1], [48, 0], [50, 0], [43, 0], [40, 1], [48, 0], [50, 0]],
+    notes: [
+      [79, 0, 0, 76, 0, 74, 0, 0, 71, 0, 74, 0, 76, 0, 0, 0],
+      [76, 0, 0, 74, 0, 71, 0, 0, 67, 0, 71, 0, 74, 0, 0, 0],
+      [72, 0, 76, 0, 79, 0, 76, 0, 72, 0, 0, 0, 76, 0, 79, 0],
+      [78, 0, 0, 74, 0, 0, 78, 0, 81, 0, 0, 0, 78, 0, 74, 0],
+      [79, 0, 83, 0, 79, 0, 76, 0, 74, 0, 76, 0, 79, 0, 0, 0],
+      [76, 0, 79, 0, 76, 0, 71, 0, 67, 0, 0, 71, 0, 0, 76, 0],
+      [72, 0, 0, 76, 0, 0, 79, 0, 84, 0, 83, 0, 79, 0, 76, 0],
+      [74, 0, 78, 0, 81, 0, 0, 78, 0, 0, 74, 0, 78, 0, 81, 0],
+    ],
+  },
+  {
+    name: 'Night Chase', bpm: [104, 140], swing: 0, lead: 'sawtooth', stab: [0, 3, 6, 10, 12],
+    bass: [0, 0, 12, 0, 0, 12, 0, 0, 0, 0, 12, 0, 0, 12, 7, 12],
+    chords: [[45, 1], [41, 0], [48, 0], [43, 0], [45, 1], [41, 0], [48, 0], [43, 0]],
+    notes: [
+      [81, 0, 0, 0, 76, 0, 81, 0, 84, 0, 83, 0, 81, 0, 0, 0],
+      [81, 0, 0, 0, 77, 0, 81, 0, 84, 0, 0, 81, 0, 0, 77, 0],
+      [79, 0, 0, 0, 76, 0, 79, 0, 84, 0, 83, 0, 79, 0, 0, 0],
+      [79, 0, 0, 74, 0, 0, 79, 0, 83, 0, 0, 0, 86, 0, 83, 0],
+      [88, 0, 0, 84, 0, 0, 81, 0, 88, 0, 0, 84, 0, 0, 81, 0],
+      [89, 0, 0, 84, 0, 0, 81, 0, 89, 0, 88, 0, 84, 0, 81, 0],
+      [88, 0, 0, 84, 0, 0, 79, 0, 84, 0, 83, 0, 84, 0, 88, 0],
+      [86, 0, 0, 83, 0, 0, 79, 0, 83, 0, 0, 0, 86, 0, 0, 0],
+    ],
+  },
+  {
+    name: 'Bubblegum Funk', bpm: [100, 128], swing: 0.2, lead: 'square', stab: [4, 7, 12, 15],
+    bass: [0, -1, -1, 0, -1, 12, -1, 0, -1, 0, 10, -1, 12, -1, 7, -1],
+    chords: [[41, 0], [38, 1], [46, 0], [48, 0], [41, 0], [38, 1], [46, 0], [48, 0]],
+    notes: [
+      [77, 0, 81, 77, 0, 0, 84, 0, 81, 0, 0, 77, 0, 0, 0, 0],
+      [74, 0, 77, 74, 0, 0, 81, 0, 77, 0, 0, 74, 0, 0, 0, 0],
+      [77, 0, 82, 77, 0, 0, 86, 0, 82, 0, 0, 77, 0, 0, 0, 0],
+      [76, 0, 79, 76, 0, 0, 84, 0, 79, 0, 0, 0, 76, 0, 79, 0],
+      [81, 0, 84, 81, 0, 0, 89, 0, 84, 0, 0, 81, 0, 0, 0, 0],
+      [77, 0, 81, 77, 0, 0, 86, 0, 81, 0, 0, 77, 0, 74, 0, 0],
+      [82, 0, 0, 81, 0, 0, 77, 0, 74, 0, 77, 0, 82, 0, 86, 0],
+      [84, 0, 0, 0, 79, 0, 0, 0, 76, 0, 79, 0, 84, 0, 0, 0],
+    ],
+  },
+  {
+    name: 'Victory Lap', bpm: [112, 144], swing: 0.08, lead: 'triangle', stab: [2, 5, 10, 13],
+    bass: [0, -1, 7, -1, 12, -1, 7, -1, 0, -1, 7, -1, 12, -1, 7, 4],
+    chords: [[50, 0], [47, 1], [43, 0], [45, 0], [50, 0], [47, 1], [43, 0], [45, 0]],
+    notes: [
+      [74, 0, 78, 0, 81, 0, 0, 78, 0, 0, 81, 0, 86, 0, 0, 0],
+      [74, 0, 78, 0, 83, 0, 0, 78, 0, 0, 83, 0, 86, 0, 0, 0],
+      [79, 0, 0, 83, 0, 0, 86, 0, 83, 0, 79, 0, 78, 0, 74, 0],
+      [76, 0, 0, 81, 0, 0, 85, 0, 88, 0, 0, 0, 85, 0, 81, 0],
+      [86, 0, 0, 85, 86, 0, 81, 0, 78, 0, 81, 0, 86, 0, 0, 0],
+      [86, 0, 0, 85, 86, 0, 83, 0, 78, 0, 83, 0, 90, 0, 0, 0],
+      [91, 0, 90, 0, 86, 0, 83, 0, 79, 0, 83, 0, 86, 0, 90, 0],
+      [88, 0, 0, 85, 0, 0, 81, 0, 85, 0, 88, 0, 93, 0, 0, 0],
+    ],
+  },
 ];
-const BASS = [0, 0, 12, 0, 0, 12, 0, 7, 0, 0, 12, 0, 7, 0, 12, 7]; // semitone offsets on 16ths (0 at odd idx = rest handled below)
-const BASS_ON = [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1];
+const LOOPS_PER_SONG = 3;
 
 export class Sound {
-  constructor() { this.sfxVol = 0.8; this.musicVol = 0.6; this.ctx = null; this.on = true; this.musicOn = true; this.musicMode = 'menu'; this.transpose = 0; this.step = 0; this.nextT = 0; }
+  constructor() { this.sfxVol = 0.8; this.musicVol = 0.6; this.ctx = null; this.on = true; this.musicOn = true; this.musicMode = 'menu'; this.transpose = 0; this.step = 0; this.nextT = 0;
+    // random playlist order, cycled through as the game goes on
+    this.order = SONGS.map((_, i) => i).sort(() => Math.random() - 0.5); this.songI = 0; this.loops = 0;
+  }
+  get song() { return SONGS[this.order[this.songI]]; }
 
   init() {
     if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume(); return; }
@@ -118,7 +187,7 @@ export class Sound {
   }
   setMusic(on, mode, transpose) {
     this.musicOn = on;
-    if (mode && mode !== this.musicMode) { this.musicMode = mode; this.step = 0; }
+    if (mode && mode !== this.musicMode) { this.musicMode = mode; this.step = 0; this.loops = 0; this.songI = (this.songI + 1) % SONGS.length; }
     if (transpose != null) this.transpose = transpose;
     if (this.music) this.music.gain.setTargetAtTime(on ? this.musicVol * 1.1 : 0, this.ctx.currentTime, 0.15);
   }
@@ -153,29 +222,31 @@ export class Sound {
     const c = this.ctx;
     if (!c || c.state !== 'running') return;
     if (!this.musicOn) { this.nextT = 0; return; }
-    const race = this.musicMode === 'race', bpm = race ? 136 : 108, dur = 60 / bpm / 4;
+    const race = this.musicMode === 'race';
     if (this.nextT < c.currentTime) this.nextT = c.currentTime + 0.06;
     while (this.nextT < c.currentTime + 0.3) {
-      this.playStep(this.step, this.nextT, dur, race);
+      const song = this.song, dur = 60 / song.bpm[race ? 1 : 0] / 4;
+      this.playStep(song, this.step, this.nextT, dur, race);
       this.step = (this.step + 1) % 128;
-      this.nextT += dur * (this.step % 2 ? 1.12 : 0.88); // light swing
+      this.nextT += dur * (this.step % 2 ? 1 + song.swing : 1 - song.swing);
+      if (this.step === 0 && ++this.loops >= LOOPS_PER_SONG) { this.loops = 0; this.songI = (this.songI + 1) % SONGS.length; }
     }
   }
-  playStep(step, t, dur, race) {
+  playStep(song, step, t, dur, race) {
     const bar = Math.floor(step / 16) % 8, s = step % 16, m = this.music, tr = this.transpose;
-    const [root, minor] = CHORDS[bar];
+    const [root, minor] = song.chords[bar];
     // bass
-    if (BASS_ON[s]) {
-      const g = this.tone(midi(root - 12 + BASS[s] + tr), t, dur * 1.7, 'triangle', 0.3, m);
-      this.tone(midi(root + BASS[s] + tr), t, dur * 1.2, 'sawtooth', 0.035, m);
-      void g;
+    const b = song.bass[s];
+    if (b >= 0) {
+      this.tone(midi(root - 12 + b + tr), t, dur * 1.7, 'triangle', 0.3, m);
+      this.tone(midi(root + b + tr), t, dur * 1.2, 'sawtooth', 0.035, m);
     }
-    // off-beat chord stabs
-    if (s % 4 === 2) for (const iv of [0, minor ? 3 : 4, 7]) this.tone(midi(root + 12 + iv + tr), t, dur * 1.6, 'triangle', 0.075, m);
+    // chord stabs
+    if (song.stab.includes(s)) for (const iv of [0, minor ? 3 : 4, 7]) this.tone(midi(root + 12 + iv + tr), t, dur * 1.6, 'triangle', 0.075, m);
     // lead melody (a second voice an octave down in the race for weight)
-    const n = LEAD[bar][s];
+    const n = song.notes[bar][s];
     if (n) {
-      this.tone(midi(n + tr), t, dur * 2.6, 'square', 0.045, m);
+      this.tone(midi(n + tr), t, dur * 2.6, song.lead, song.lead === 'triangle' ? 0.12 : 0.045, m);
       this.tone(midi(n + tr) * 1.004, t, dur * 2.6, 'triangle', 0.09, m);
       if (race) this.tone(midi(n - 12 + tr), t, dur * 1.5, 'sawtooth', 0.02, m);
     }
