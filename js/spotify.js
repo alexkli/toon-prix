@@ -34,3 +34,9 @@ export function spotifyHide() {
   if (controller) controller.pause();
 }
 $('#sp-tab').onclick = () => $('#spotify').classList.toggle('min');
+// After logging in to Spotify in another tab, reload the embed so it can pick up the session.
+let wentToLogin = false;
+$('#sp-login').addEventListener('click', () => { wentToLogin = true; });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && wentToLogin && controller && curUri) { wentToLogin = false; controller.loadUri(curUri); $('#spotify').classList.remove('min'); }
+});

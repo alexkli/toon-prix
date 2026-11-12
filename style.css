@@ -140,7 +140,9 @@ body.nogas #touch .tb-gas { display: none; }
 input.txt { font: inherit; font-weight: 700; font-size: .9rem; border: .2em solid var(--ink); border-radius: .8em; padding: .4em .7em; background: #fff; color: var(--ink); min-width: 0; flex: 1; -webkit-user-select: text; user-select: text; touch-action: auto; }
 #spotify { position: fixed; left: calc(var(--sl) + .6em); bottom: calc(var(--sb) + .6em); width: min(22em, calc(100vw - 1.2em)); z-index: 25; border: .22em solid var(--ink); border-radius: 1em; background: #1b1b2f; box-shadow: .25em .3em 0 var(--ink); overflow: hidden; transition: transform .3s; }
 body:not(.menu) #spotify { transform: translateY(160%); }
-#sp-tab { display: block; width: 100%; border: 0; background: #1ed760; color: var(--ink); font-size: .85rem; font-weight: 900; padding: .3em .8em; text-align: left; }
+#sp-bar { display: flex; background: #1ed760; align-items: center; }
+#sp-login { color: var(--ink); font-size: .8rem; font-weight: 900; padding: .15em .7em; margin-right: .4em; border: .16em solid var(--ink); border-radius: 2em; background: #fff; text-decoration: none; white-space: nowrap; }
+#sp-tab { display: block; flex: 1; border: 0; background: #1ed760; color: var(--ink); font-size: .85rem; font-weight: 900; padding: .3em .8em; text-align: left; }
 #sp-tab span { float: right; }
 #sp-body { height: 152px; transition: height .25s; } #spotify.min #sp-body { height: 0; } #spotify.min #sp-tab span { transform: rotate(180deg); }
 #sp-body iframe { display: block; border: 0; }
