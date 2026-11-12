@@ -60,9 +60,10 @@ export class CameraRig {
       fov = (portrait ? 80 : 62) + car.v * 0.16 + (car.boosting ? 6 : 0);
       ll = 14;
     } else if (mode === 'onboard') {
-      this.tp.set(cx - fx * 0.25, 1.82, cz - fz * 0.25);
-      this.tl.set(cx + fx * 20, 1.0, cz + fz * 20);
-      fov = portrait ? 95 : 82; near = 0.12;
+      // driver's eye: just in front of the visor, so the helmet is never in shot
+      this.tp.set(cx + fx * 0.66, 1.27, cz + fz * 0.66);
+      this.tl.set(cx + fx * 20, 0.85, cz + fz * 20);
+      fov = portrait ? 95 : 82; near = 0.12; lp = ll = 1e6; // rigidly attached, no lag
     } else if (mode === 'tv') {
       this.tvT -= dt;
       if (!this.tv || this.tvT <= 0 || this.snap) {

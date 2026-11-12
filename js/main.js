@@ -9,7 +9,7 @@ import { Sound } from './audio.js';
 import { store, applyResults, champGrid, quickGrid } from './store.js';
 import { Menus, Hud, banner, toast, confetti, ord } from './ui.js';
 import { G, INK, fmtTime } from './util.js';
-import { parseSpotify, spotifyShow, spotifyHide } from './spotify.js';
+import { parseSpotify, sp, handleRedirect, showDock, pause as spotifyPause } from './spotify.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#gl');
@@ -88,15 +88,17 @@ const app = {
     const s = store.data.settings;
     sound.setOn(s.sound);
     sound.setMusic(s.music === 'on');
-    const uri = s.music === 'spotify' && parseSpotify(s.spotifyUrl);
-    if (uri) spotifyShow(uri).catch((e) => toast(e.message, 3000)); else spotifyHide();
+    if (s.music !== 'spotify' && wasSpotify) spotifyPause();
+    wasSpotify = s.music === 'spotify';
+    showDock(wasSpotify, parseSpotify(s.spotifyUrl));
     if (race) race.aids = s.aids;
     document.body.classList.toggle('nogas', s.aids !== 'none');
     pr = s.quality === 'low' ? 1 : Math.min(devicePixelRatio || 1, s.quality === 'high' ? 3 : 2);
     resize();
   },
-  confetti,
+  confetti, toast,
 };
+let wasSpotify = false;
 const menus = new Menus(app), hud = new Hud(app);
 
 function load(cfg, saved) {
@@ -310,9 +312,17 @@ function frame(now) {
   }
 }
 
+sp.notify = (m) => toast(m, 3500);
 app.applySettings();
 app.preview();
 menus.main();
+// returning from the Spotify sign-in page
+handleRedirect().then((ok) => {
+  if (!ok) return;
+  store.data.settings.music = 'spotify'; store.save(); app.applySettings();
+  menus.settings(() => menus.main());
+  toast('Spotify connected — press ▶ Play', 4000);
+}).catch((e) => toast(e.message, 4000));
 requestAnimationFrame(frame);
 requestAnimationFrame(() => $('#loading').classList.add('gone'));
 window.__game = { app, get race() { return race; }, rig, get focus() { return focus; }, renderer };

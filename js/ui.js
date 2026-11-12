@@ -3,7 +3,7 @@ import { buildTrackMath } from './trackmath.js';
 import { CAM_MODES } from './cameras.js';
 import { fmtTime } from './util.js';
 import { store, standings, champDone, newChampionship } from './store.js';
-import { parseSpotify } from './spotify.js';
+import { parseSpotify, sp, connect, disconnect, play, redirectUri } from './spotify.js';
 
 const $ = (s) => document.querySelector(s);
 export function el(tag, props = {}, ...kids) {
@@ -45,19 +45,27 @@ export class Menus {
     document.body.classList.add('menu');
   }
   hide() { this.root.className = ''; this.root.replaceChildren(); document.body.classList.remove('menu'); }
-  // music source picker; Spotify takes a pasted playlist/album/track link
+  // music source picker; Spotify needs a one-time sign-in, then plays a pasted link or resumes your last music
   musicPicker(re) {
-    const s = store.data.settings;
-    const inp = el('input', { class: 'txt', type: 'url', inputmode: 'url', placeholder: 'Paste a Spotify playlist, album or track link', value: s.spotifyUrl });
-    const load = () => {
-      if (!parseSpotify(inp.value)) { inp.value = ''; inp.placeholder = 'That is not a Spotify link — try again'; return; }
-      s.spotifyUrl = inp.value.trim(); re();
-    };
-    return el('div', {}, seg(MUSIC, s.music, (v) => { s.music = v; re(); }),
-      s.music === 'spotify' && el('div', { class: 'row nw', style: 'margin-top:.5em' }, inp, this.btn('Load', 'mint small', load)),
-      s.music === 'spotify' && el('p', { class: 'note', style: 'margin:.4em 0 0' }, parseSpotify(s.spotifyUrl) ? 'Press play in the green Spotify player (bottom left). It tucks away once music is playing and stays reachable from any menu. Log in to Spotify in this browser for full tracks.' : 'Share → Copy link in Spotify, paste it here and press Load.'));
+    const s = store.data.settings, a = this.app;
+    const kids = [seg(MUSIC, s.music, (v) => { s.music = v; re(); })];
+    if (s.music === 'spotify' && !sp.connected) {
+      kids.push(el('div', { class: 'row', style: 'margin-top:.5em' }, this.btn('Connect Spotify', 'mint small', () => { store.save(); connect().catch((e) => a.toast(e.message)); })),
+        el('p', { class: 'note', style: 'margin:.4em 0 0' }, 'Signs you in at spotify.com and comes straight back. Needs Spotify Premium.'));
+    } else if (s.music === 'spotify') {
+      const inp = el('input', { class: 'txt', type: 'url', inputmode: 'url', placeholder: 'Optional: paste a playlist, album or track link', value: s.spotifyUrl });
+      const go = () => {
+        const uri = parseSpotify(inp.value);
+        if (inp.value.trim() && !uri) { inp.value = ''; inp.placeholder = 'That is not a Spotify link — try again'; return; }
+        s.spotifyUrl = inp.value.trim(); store.save(); a.applySettings();
+        play(uri).catch((e) => a.toast(e.message, 3500));
+      };
+      kids.push(el('div', { class: 'row nw', style: 'margin-top:.5em' }, inp, this.btn('▶ Play', 'mint small', go)),
+        el('p', { class: 'note', style: 'margin:.4em 0 0' }, `Connected${sp.name ? ' as ' + sp.name : ''}. Leave the link empty to resume what you last played. Controls sit in the green bar, bottom left of every menu. `,
+          el('a', { href: '#', onclick: (e) => { e.preventDefault(); disconnect(); re(); } }, 'Disconnect')));
+    }
+    return el('div', {}, kids);
   }
-  get open() { return this.root.classList.contains('on'); }
   btn(label, cls, fn) { return el('button', { class: 'btn ' + cls, onclick: () => { this.app.sound.init(); this.app.sound.click(); fn(); } }, label); }
 
   main() {
