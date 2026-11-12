@@ -19,7 +19,7 @@ export class CameraRig {
     this.tp = new THREE.Vector3(); this.tl = new THREE.Vector3();
     this.ch = 0; this.heliA = 0.6; this.az = 0.5; this.el = 0.6; this.zoom = 1; this.dragT = 0;
     this.shotT = 0; this.shotI = 0; this.tv = null; this.tvT = 0; this.world = null;
-    this.onShot = null; // director callback to choose a new focus car
+    this.finishShot = false; this.onShot = null; // director callback to choose a new focus car
     this.active = 'tv';
   }
   setWorld(w) { this.world = w; this.snap = true; this.tv = null; this.az = 0.5; this.el = 0.6; this.zoom = 1; this.shotT = 0; }
@@ -38,7 +38,7 @@ export class CameraRig {
       this.shotT -= dt;
       if (intro) this.shotT = 0;
       else {
-        if (this.shotT <= 0) {
+        if (this.shotT <= 0 && !this.finishShot) {
           this.shotI = (this.shotI + 1 + Math.floor(Math.random() * 2)) % DIRECTOR_SHOTS.length;
           this.sub = DIRECTOR_SHOTS[this.shotI];
           this.shotT = this.sub === 'circuit' ? 5 : this.sub === 'onboard' ? 5 : 6 + Math.random() * 5;
@@ -49,6 +49,8 @@ export class CameraRig {
       }
     }
     if (intro && mode !== 'circuit') mode = 'drone';
+    const finish = this.finishShot && (this.mode === 'director' || this.mode === 'tv'); // hold the finish-line camera
+    if (finish) mode = 'tv';
     if (mode !== this.active) { this.active = mode; this.snap = true; }
     const cx = car.x, cz = car.z, fx = Math.sin(car.h), fz = Math.cos(car.h);
     let fov = 60, near = 0.4, lp = 100, ll = 100;
@@ -66,7 +68,10 @@ export class CameraRig {
       fov = portrait ? 95 : 82; near = 0.12; lp = ll = 1e6; // rigidly attached, no lag
     } else if (mode === 'tv') {
       this.tvT -= dt;
-      if (!this.tv || this.tvT <= 0 || this.snap) {
+      if (finish) {
+        if (this.tv !== this.world.finishCam) { this.tv = this.world.finishCam; this.snap = true; }
+        this.tvT = 0;
+      } else if (!this.tv || this.tvT <= 0 || this.snap) {
         let best = null, bd = 1e9;
         for (const c of this.world.tvCams) {
           // prefer cameras the car is driving towards

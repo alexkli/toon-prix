@@ -3,8 +3,8 @@ import { TRACKS, DRIVERS, POINTS } from './data.js';
 const KEY = 'toonprix.save.v1';
 const touch = typeof window !== 'undefined' && (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window);
 const defaults = () => ({
-  settings: { sound: true, music: 'on', spotifyUrl: '', aids: touch ? 'full' : 'none', quality: 'auto', cam: 'chase' },
-  quick: { track: 'meadows', laps: 3, difficulty: 'normal', driver: 'pip', mode: 'drive', grid: 'mid' },
+  settings: { sound: true, sfxVol: 0.8, musicVol: 0.6, spotifyVol: 0.4, music: 'on', spotifyUrl: '', aids: touch ? 'full' : 'none', quality: 'auto', cam: 'chase' },
+  quick: { track: 'meadows', laps: 3, difficulty: 'normal', driver: 'pip', mode: 'drive', grid: 'mid', cam: 'director' },
   records: {}, slots: [null, null, null], resume: null,
 });
 

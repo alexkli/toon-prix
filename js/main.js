@@ -9,7 +9,7 @@ import { Sound } from './audio.js';
 import { store, applyResults, champGrid, quickGrid } from './store.js';
 import { Menus, Hud, banner, toast, confetti, ord } from './ui.js';
 import { G, INK, fmtTime } from './util.js';
-import { parseSpotify, sp, handleRedirect, showDock, pause as spotifyPause } from './spotify.js';
+import { parseSpotify, sp, handleRedirect, showDock, pause as spotifyPause, setVolume as spotifyVolume } from './spotify.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#gl');
@@ -47,7 +47,7 @@ const app = {
   startQuick() {
     const q = store.data.quick, playerId = q.mode === 'drive' ? q.driver : null;
     store.data.resume = null; store.save();
-    load({ kind: 'quick', trackId: q.track, laps: q.laps, difficulty: q.difficulty, playerId, grid: quickGrid(playerId, q.grid) });
+    load({ kind: 'quick', trackId: q.track, laps: q.laps, difficulty: q.difficulty, playerId, grid: quickGrid(playerId, q.grid), cam: playerId ? undefined : q.cam });
     menus.hide();
   },
   startChamp(slot) {
@@ -87,6 +87,7 @@ const app = {
   applySettings() {
     const s = store.data.settings;
     sound.setOn(s.sound);
+    app.applyVolumes();
     sound.setMusic(s.music === 'on');
     if (s.music !== 'spotify' && wasSpotify) spotifyPause();
     wasSpotify = s.music === 'spotify';
@@ -95,6 +96,11 @@ const app = {
     document.body.classList.toggle('nogas', s.aids !== 'none');
     pr = s.quality === 'low' ? 1 : Math.min(devicePixelRatio || 1, s.quality === 'high' ? 3 : 2);
     resize();
+  },
+  applyVolumes() {
+    const s = store.data.settings;
+    sound.setVolumes(s.sfxVol, s.musicVol);
+    spotifyVolume(s.spotifyVol);
   },
   confetti, toast,
 };
@@ -245,8 +251,28 @@ function autosave() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
 addEventListener('pagehide', autosave);
 
+// Race-finish TV direction (watch mode): cut to the finish-line camera for the winner taking the flag,
+// then stay there and pick up each following car as it comes to the line.
+function finishDirection() {
+  rig.finishShot = false;
+  if (race.player || session.kind === 'attract' || race.state !== 'racing' || !(rig.mode === 'director' || rig.mode === 'tv')) return;
+  const L = race.T.length;
+  let next = null, lastFin = null;
+  for (const c of race.cars) {
+    if (c.finished) { if (!lastFin || c.finishTime > lastFin.finishTime) lastFin = c; continue; }
+    const flagLap = race.leaderDone ? c.laps >= 0 : c.laps === race.laps - 1;
+    if (flagLap && c.s > L - 140 && (!next || c.s > next.s)) next = c;
+  }
+  const since = lastFin ? race.time - lastFin.finishTime : 99;
+  let pick = null;
+  if (next && (!lastFin || since > 1.1 || L - next.s < 40)) pick = next;
+  else if (lastFin && since < 2.6) pick = lastFin;
+  if (!pick) return;
+  rig.finishShot = true;
+  focus = pick;
+}
 function pickDirectorFocus() {
-  if (race.player || focusLock) return focus;
+  if (race.player || focusLock || rig.finishShot) return focus;
   const o = race.order, rnd = Math.random();
   if (rnd < 0.35) focus = o[0];
   else {
@@ -277,6 +303,7 @@ function frame(now) {
       if (wrongT > 1.2) { banner('WRONG WAY!'); wrongT = -1.5; }
     }
   }
+  finishDirection();
   focus = rig.update(dt, time, focus, camera.aspect, race.state === 'intro') || focus;
   const mini = rig.active === 'circuit';
   if (document.body.classList.contains('mini') !== mini) document.body.classList.toggle('mini', mini);

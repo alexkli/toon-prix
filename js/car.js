@@ -66,6 +66,9 @@ export function buildCarMesh(team, driver) {
   return { group, body, wheels, flame };
 }
 
+const NO_INPUT = { steer: 0, throttle: 0, brake: 0, boost: false };
+export const SLIDE = 2.2, SPIN = 2.6; // decay rates of the crash slide / spin
+
 export class Car {
   constructor(driver, team, T, opts = {}) {
     this.driver = driver; this.team = team; this.T = T;
@@ -80,6 +83,7 @@ export class Car {
     this.finished = false; this.finishTime = 0; this.lapStart = 0; this.bestLap = Infinity; this.lastLap = 0;
     this.lane = 0; this.passSide = 0; this.passTarget = null; this.stuck = 0; this.react = 0;
     this.lapNoise = 1; this.wallCd = 0; this.wheelRot = 0; this.roll = 0; this.pitch = 0; this.skid = 0; this.wrongWay = 0;
+    this.kx = 0; this.kz = 0; this.spinW = 0; this.spinT = 0; this.crashCd = 0; // crash: knock-back slide + spin
     this.pos = 0; this.phase = Math.random() * 6;
   }
   place(slot) {
@@ -105,6 +109,9 @@ export class Car {
   step(dt, input, draft) {
     const T = this.T;
     let ev = null;
+    const spinning = this.spinT > 0;
+    if (spinning) { this.spinT -= dt; input = NO_INPUT; this.v -= this.v * 1.3 * dt; }
+    this.crashCd -= dt;
     const grip = this.onTrack ? 1 : 0.6;
     this.boosting = !!input.boost && this.boost > 0.02 && this.v > 5;
     if (this.boosting) this.boost = Math.max(0, this.boost - dt * 0.3);
@@ -129,8 +136,17 @@ export class Car {
     const yaw = this.steer * Math.min(PERF.maxYaw, (PERF.aLat * grip) / Math.max(av, 6)) * Math.min(1, av / 5) * Math.sign(this.v || 1);
     this.h += yaw * dt;
     this.skid = Math.abs(this.steer) > 0.82 && av > 30 ? 1 : input.brake > 0.6 && av > 35 ? 0.6 : 0;
+    if (spinning) this.skid = 1;
     this.x += Math.sin(this.h) * this.v * dt;
     this.z += Math.cos(this.h) * this.v * dt;
+    // crash momentum: slide sideways and spin, both fading out
+    if (this.kx || this.kz || this.spinW) {
+      this.x += this.kx * dt; this.z += this.kz * dt; this.h += this.spinW * dt;
+      const f = Math.exp(-SLIDE * dt);
+      this.kx *= f; this.kz *= f; this.spinW *= Math.exp(-SPIN * dt);
+      if (Math.abs(this.kx) + Math.abs(this.kz) < 0.2) this.kx = this.kz = 0;
+      if (Math.abs(this.spinW) < 0.05) this.spinW = 0;
+    }
 
     this.track();
     // barriers
@@ -142,11 +158,26 @@ export class Car {
       if (into > 7 && this.wallCd <= 0) { this.v *= 0.62; this.wallCd = 0.6; ev = 'wall'; } else this.v *= 1 - 0.9 * dt;
       const along = Math.atan2(T.tx[i], T.tz[i]);
       const fwd = Math.cos(angDiff(this.h, along)) >= 0 ? along : along + Math.PI;
-      this.h += angDiff(fwd, this.h) * Math.min(1, 7 * dt);
+      if (!this.spinW) this.h += angDiff(fwd, this.h) * Math.min(1, 7 * dt);
+      this.kx *= 0.5; this.kz *= 0.5; // the barrier soaks up a slide
       this.lat = sg * lim;
     }
     this.wallCd -= dt;
     return ev;
+  }
+  // Knock the car away along (dx, dz) (unit vector) after a hit of closing speed `rel`.
+  // Light taps only shove and wobble; hard hits send the car sliding with one or two full spins,
+  // which always end facing the original way so nobody is left tangled up.
+  crash(dx, dz, rel, spinDir) {
+    const mag = Math.min(26, rel * 0.55);
+    this.kx += dx * mag; this.kz += dz * mag;
+    const turns = rel > 32 ? 2 : rel > 15 ? 1 : 0;
+    const angle = turns ? turns * Math.PI * 2 : Math.min(0.5, rel * 0.035);
+    this.spinW = spinDir * angle * SPIN;
+    if (turns) { this.spinT = 0.7 + turns * 0.45; this.v *= 0.55; }
+    else if (rel > 8) { this.spinT = 0.25; this.v *= 0.85; }
+    this.crashCd = 0.5;
+    this.lane = 0; this.passTarget = null;
   }
   // visual sync
   sync(dt, time) {

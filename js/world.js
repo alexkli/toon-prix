@@ -295,6 +295,18 @@ export function buildWorld(def) {
     tvCams.push({ x, y, z, i });
   }
 
+  // finish-line camera: side-on just past the line, sees cars come down the straight and cross it
+  let finishCam = null;
+  for (const side of [1, -1]) {
+    const i = 11, x = T.px[i] + T.nx[i] * side * (WALL + 5), z = T.pz[i] + T.nz[i] * side * (WALL + 5);
+    if (finishCam || T.distTo(x, z) < WALL + 3 || blocked.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < (q.r + 2) ** 2) || (seaZ != null && z < seaZ + 3)) continue;
+    b.add(G.box, '#8892aa', M(x, 2.6, z, 0.5, 5.2, 0.5), 0.08);
+    b.add(G.box, '#2b2b3a', M(x, 5.3, z, 2.6, 0.3, 2.6), 0.08);
+    blocked.push({ x, z, r: 2.5 });
+    finishCam = { x, y: 6.6, z, i };
+  }
+  if (!finishCam) finishCam = { x: T.px[11] + T.nx[11] * (WALL + 1.6), y: 6.6, z: T.pz[11] + T.nz[11] * (WALL + 1.6), i: 11 };
+
   // themed extras
   if (th.night) {
     for (let i = 0; i < n; i += 13) {
@@ -419,7 +431,7 @@ export function buildWorld(def) {
   if (glow.pos.length) group.add(glow.build(new THREE.MeshBasicMaterial({ vertexColors: true })));
 
   return {
-    T, def, theme: th, group, lights, tvCams, sunDir,
+    T, def, theme: th, group, lights, tvCams, finishCam, sunDir,
     update(dt, t) { for (const f of anim) f(dt, t); },
     setLights(count, green = false) {
       lights.forEach((l, k) => l.material.color.set(green ? '#3dff6a' : k < count ? '#ff2a2a' : '#40121c'));

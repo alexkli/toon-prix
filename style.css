@@ -143,3 +143,5 @@ body:not(.menu) #spotify { transform: translateY(200%); }
 #sp-title { font-size: .8rem; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 #spotify button { width: 2.2em; height: 2.2em; border-radius: 50%; border: .18em solid var(--ink); background: #fff; font-size: .95rem; padding: 0; line-height: 1; flex: none; }
 #spotify button:active { transform: scale(.92); }
+
+input.rng { flex: 1; min-width: 8em; height: 2em; accent-color: var(--blue); touch-action: pan-y; cursor: pointer; }

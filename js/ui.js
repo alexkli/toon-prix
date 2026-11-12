@@ -46,6 +46,19 @@ export class Menus {
     document.body.classList.add('menu');
   }
   hide() { this.root.className = ''; this.root.replaceChildren(); document.body.classList.remove('menu'); }
+  // live volume slider bound to a settings key
+  slider(key) {
+    const s = store.data.settings, a = this.app;
+    const out = el('span', { class: 'note', style: 'min-width:2.6em;text-align:right' }, Math.round(s[key] * 100) + '%');
+    const inp = el('input', { type: 'range', min: 0, max: 100, step: 1, value: Math.round(s[key] * 100), class: 'rng',
+      oninput: () => { s[key] = inp.value / 100; out.textContent = inp.value + '%'; a.applyVolumes(); }, onchange: () => store.save() });
+    return el('div', { class: 'row nw' }, inp, out);
+  }
+  volumes() {
+    const s = store.data.settings;
+    return [el('div', { class: 'label' }, 'Effects volume'), this.slider('sfxVol'),
+      s.music !== 'off' && el('div', { class: 'label' }, s.music === 'spotify' ? 'Spotify volume' : 'Music volume'), s.music !== 'off' && this.slider(s.music === 'spotify' ? 'spotifyVol' : 'musicVol')];
+  }
   // music source picker; Spotify needs a one-time sign-in, then plays a pasted link or resumes your last music
   musicPicker(re) {
     const s = store.data.settings, a = this.app;
@@ -119,6 +132,7 @@ export class Menus {
             el('div', { class: 'label' }, 'Start from'), seg([['front', 'Pole'], ['mid', 'Midfield'], ['back', 'Last']], q.grid, (v) => { q.grid = v; re(); }),
             el('div', { class: 'label' }, 'Driving aids'), seg(AIDS, store.data.settings.aids, (v) => { store.data.settings.aids = v; re(); }),
           ],
+          q.mode === 'watch' && [el('div', { class: 'label' }, 'Camera'), seg(CAM_MODES.map((m) => [m.id, `${m.icon} ${m.name}`]), q.cam, (v) => { q.cam = v; re(); })],
           q.mode === 'watch' && el('p', { class: 'note' }, 'Sit back: all 16 cars race themselves. Tap a driver in the timing tower to follow them and use 🎥 to switch between TV, helicopter, drone and the miniature whole-circuit view.')),
       ))));
   }
@@ -213,6 +227,7 @@ export class Menus {
         el('div', {}, el('div', { class: 'label', style: 'margin-top:0' }, 'Camera'), seg(CAM_MODES.map((m) => [m.id, `${m.icon} ${m.name}`]), a.rig.mode, (v) => { a.setCam(v); this.pause(); })),
         a.race.player && el('div', {}, el('div', { class: 'label', style: 'margin-top:0' }, 'Driving aids'), seg(AIDS, s.aids, (v) => { s.aids = v; re(); })),
         el('div', {}, el('div', { class: 'label', style: 'margin-top:0' }, 'Music'), this.musicPicker(re)),
+        el('div', {}, this.volumes()),
         el('div', { class: 'row' }, this.btn(s.sound ? '🔊 Sound on' : '🔇 Sound off', 'white small', () => { s.sound = !s.sound; re(); }), this.btn('↺ Restart', 'white small', () => a.restart())),
         el('div', { class: 'row' }, this.btn('💾 Save & quit', 'blue small', () => a.quit(true)), this.btn('Quit', 'red small', () => a.quit(false))),
         ses.kind === 'champ' && el('p', { class: 'note', style: 'margin:0' }, 'Quitting without saving keeps your championship at the start of this round.'),
@@ -227,6 +242,7 @@ export class Menus {
       el('div', { class: 'panel' },
         el('div', { class: 'label', style: 'margin-top:0' }, 'Sound effects'), seg([[true, '🔊 On'], [false, '🔇 Off']], s.sound, (v) => { s.sound = v; re(); }),
         el('div', { class: 'label' }, 'Music'), this.musicPicker(re),
+        this.volumes(),
         el('div', { class: 'label' }, 'Driving aids'), seg(AIDS, s.aids, (v) => { s.aids = v; re(); }),
         el('div', { class: 'label' }, 'Default driving camera'), seg(CAM_MODES.slice(0, 5).map((m) => [m.id, `${m.icon} ${m.name}`]), s.cam, (v) => { s.cam = v; re(); }),
         el('div', { class: 'label' }, 'Graphics'), seg([['auto', 'Auto'], ['high', 'Sharp'], ['low', 'Fast']], s.quality, (v) => { s.quality = v; re(); }),

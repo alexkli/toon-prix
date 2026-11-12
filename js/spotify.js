@@ -16,6 +16,7 @@ export const sp = {
   get connected() { return !!auth; },
   get name() { return auth && auth.name; },
   now: { title: '', paused: true },
+  volume: 0.4,
 };
 
 export function parseSpotify(url) {
@@ -89,7 +90,7 @@ export function ensurePlayer() {
     const give = (id) => { clearTimeout(timer); res(id); };
     const timer = setTimeout(() => give(null), 9000);
     const make = () => {
-      player = new window.Spotify.Player({ name: 'Toon Prix', getOAuthToken: (cb) => token().then(cb).catch(() => {}), volume: 0.6 });
+      player = new window.Spotify.Player({ name: 'Toon Prix', getOAuthToken: (cb) => token().then(cb).catch(() => {}), volume: sp.volume });
       player.addListener('ready', ({ device_id }) => { sdkDevice = device_id; give(device_id); });
       player.addListener('not_ready', () => { sdkDevice = null; });
       player.addListener('initialization_error', () => give(null));
@@ -159,6 +160,16 @@ export async function pause() {
     if (player && sdkDevice && !remote) await player.pause(); else if (remote) await api('PUT', '/me/player/pause');
     sp.now.paused = true; render();
   } catch { /* nothing playing */ }
+}
+
+let volT = 0;
+export function setVolume(v) {
+  sp.volume = v;
+  if (player && sdkDevice && !remote) { player.setVolume(v).catch(() => {}); return; }
+  if (!remote) return;
+  // remote Spotify apps: not every device allows this (iPhone does not), so failures are ignored
+  clearTimeout(volT);
+  volT = setTimeout(() => api('PUT', '/me/player/volume?volume_percent=' + Math.round(v * 100)).catch(() => {}), 300);
 }
 
 // ---------- dock UI ----------

@@ -18,7 +18,7 @@ const BASS = [0, 0, 12, 0, 0, 12, 0, 7, 0, 0, 12, 0, 7, 0, 12, 7]; // semitone o
 const BASS_ON = [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1];
 
 export class Sound {
-  constructor() { this.ctx = null; this.on = true; this.musicOn = true; this.musicMode = 'menu'; this.transpose = 0; this.step = 0; this.nextT = 0; }
+  constructor() { this.sfxVol = 0.8; this.musicVol = 0.6; this.ctx = null; this.on = true; this.musicOn = true; this.musicMode = 'menu'; this.transpose = 0; this.step = 0; this.nextT = 0; }
 
   init() {
     if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume(); return; }
@@ -27,10 +27,10 @@ export class Sound {
     const c = (this.ctx = new AC());
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 5; comp.attack.value = 0.005; comp.release.value = 0.2;
-    this.master = c.createGain(); this.master.gain.value = this.on ? 1 : 0;
+    this.master = c.createGain(); this.master.gain.value = this.on ? this.sfxVol * 1.25 : 0;
     this.master.connect(comp); comp.connect(c.destination);
     this.sfx = c.createGain(); this.sfx.gain.value = 1; this.sfx.connect(this.master);
-    this.music = c.createGain(); this.music.gain.value = this.musicOn ? 0.65 : 0; this.music.connect(c.destination);
+    this.music = c.createGain(); this.music.gain.value = this.musicOn ? this.musicVol * 1.1 : 0; this.music.connect(c.destination);
     // noise source shared by tyres, wind, drums
     const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -109,12 +109,18 @@ export class Sound {
     this.wF.frequency.setTargetAtTime(400 + sp * 900, t, 0.15);
   }
 
-  setOn(b) { this.on = b; if (this.master) this.master.gain.value = b ? 1 : 0; }
+  setOn(b) { this.on = b; if (this.master) this.master.gain.value = b ? this.sfxVol * 1.25 : 0; }
+  // 0..1 sliders for effects and built-in music
+  setVolumes(sfx, music) {
+    this.sfxVol = sfx; this.musicVol = music;
+    this.setOn(this.on);
+    if (this.music) this.music.gain.value = this.musicOn ? music * 1.1 : 0;
+  }
   setMusic(on, mode, transpose) {
     this.musicOn = on;
     if (mode && mode !== this.musicMode) { this.musicMode = mode; this.step = 0; }
     if (transpose != null) this.transpose = transpose;
-    if (this.music) this.music.gain.setTargetAtTime(on ? 0.65 : 0, this.ctx.currentTime, 0.15);
+    if (this.music) this.music.gain.setTargetAtTime(on ? this.musicVol * 1.1 : 0, this.ctx.currentTime, 0.15);
   }
 
   // ---- one-shots ----

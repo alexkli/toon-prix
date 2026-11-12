@@ -62,7 +62,7 @@ export class Race {
         if (car.laps > before && car.laps > car.maxLaps) this.crossed(car);
         // stuck / lost recovery
         if (racing && (car.auto || car.finished)) {
-          car.stuck = car.v < 2.5 ? car.stuck + h : 0;
+          car.stuck = car.v < 2.5 && car.spinT <= 0 ? car.stuck + h : 0;
           if (car.stuck > 2.5) this.reset(car);
         }
       }
@@ -148,7 +148,17 @@ export class Race {
           if (Math.abs(ca) > 0.35) A.v += clamp(((vn - va) / ca) * 0.9, -rel, rel);
           if (Math.abs(cb) > 0.35) B.v += clamp(((vn - vb) / cb) * 0.9, -rel, rel);
           A.v = Math.max(A.v, 0); B.v = Math.max(B.v, 0);
-          if (rel > 4 && this.bonkCd <= 0) { this.bonkCd = 0.5; this.ev('bonk', { x: (A.x + B.x) / 2, z: (A.z + B.z) / 2, cars: [A, B], rel }); }
+          if (rel > 4 && A.crashCd <= 0 && B.crashCd <= 0) {
+            // crash: both cars are flung apart sideways (and a little along the contact), harder hits fly further
+            // side = across A's heading, pointing away from B; a dead-centre rear-end picks the roomier side
+            let side = -(faz * nx - fax * nz) >= 0 ? 1 : -1;
+            if (Math.abs(faz * nx - fax * nz) < 0.15) side = A.lat > B.lat ? -1 : 1;
+            const px = faz * side, pz = -fax * side;
+            const ax = px * 0.85 - nx * 0.35, az = pz * 0.85 - nz * 0.35, bx = -px * 0.85 + nx * 0.35, bz = -pz * 0.85 + nz * 0.35;
+            const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz);
+            A.crash(ax / la, az / la, rel, side); B.crash(bx / lb, bz / lb, rel, -side);
+            if (this.bonkCd <= 0) { this.bonkCd = 0.4; this.ev('bonk', { x: (A.x + B.x) / 2, z: (A.z + B.z) / 2, cars: [A, B], rel }); }
+          }
         }
       }
     }
