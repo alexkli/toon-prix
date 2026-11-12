@@ -19,7 +19,7 @@ export class CameraRig {
     this.tp = new THREE.Vector3(); this.tl = new THREE.Vector3();
     this.ch = 0; this.heliA = 0.6; this.az = 0.5; this.el = 0.6; this.zoom = 1; this.dragT = 0;
     this.shotT = 0; this.shotI = 0; this.tv = null; this.tvT = 0; this.world = null;
-    this.finishShot = false; this.onShot = null; // director callback to choose a new focus car
+    this.finishShot = false; this.finishTarget = { x: 0, z: 0, spread: 0 }; this.onShot = null; // director callback to choose a new focus car
     this.active = 'tv';
   }
   setWorld(w) { this.world = w; this.snap = true; this.tv = null; this.az = 0.5; this.el = 0.6; this.zoom = 1; this.shotT = 0; }
@@ -83,10 +83,14 @@ export class CameraRig {
         this.tvT = 0.5;
       }
       this.tp.set(this.tv.x, this.tv.y, this.tv.z);
-      this.tl.set(cx, 0.8, cz);
-      const d = this.tp.distanceTo(this.tl);
-      fov = clamp((2 * Math.atan((portrait ? 16 : 10) / d) * 180) / Math.PI, 7, 60);
+      let half = portrait ? 16 : 10;
       ll = 9;
+      if (finish) { // aim at the whole group around the line and pan gently
+        const ft = this.finishTarget;
+        this.tl.set(ft.x, 0.8, ft.z); half += ft.spread * (portrait ? 1.5 : 1); ll = 2.2;
+      } else this.tl.set(cx, 0.8, cz);
+      const d = this.tp.distanceTo(this.tl);
+      fov = clamp((2 * Math.atan(half / d) * 180) / Math.PI, 7, 60);
     } else if (mode === 'heli') {
       if (this.dragT <= 0) this.heliA += dt * 0.1;
       this.tp.set(cx + Math.cos(this.heliA) * 36, 50 + Math.sin(time * 0.6) * 2, cz + Math.sin(this.heliA) * 36);
@@ -112,7 +116,7 @@ export class CameraRig {
     else {
       this.pos.lerp(this.tp, 1 - Math.exp(-lp * dt));
       this.look.lerp(this.tl, 1 - Math.exp(-ll * dt));
-      this.fov = damp(this.fov, fov, 4, dt);
+      this.fov = damp(this.fov, fov, finish ? 1.2 : 4, dt);
     }
     const cam = this.cam;
     cam.position.copy(this.pos); cam.lookAt(this.look);

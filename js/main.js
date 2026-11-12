@@ -270,6 +270,18 @@ function finishDirection() {
   if (!pick) return;
   rig.finishShot = true;
   focus = pick;
+  // Frame everyone who is around the line together, so the picture glides instead of hopping car to car.
+  let n = 0, sx = 0, sz = 0;
+  const group = [];
+  for (const c of race.cars) {
+    const rel = c.s < L / 2 ? c.s : c.s - L; // distance past (+) or before (-) the line
+    const live = c === pick || (c.finished ? race.time - c.finishTime < 3 : race.leaderDone ? c.laps >= 0 : c.laps === race.laps - 1);
+    if (live && rel > -75 && rel < 32) { group.push(c); sx += c.x; sz += c.z; n++; }
+  }
+  if (!n) { group.push(pick); sx = pick.x; sz = pick.z; n = 1; }
+  const ft = rig.finishTarget;
+  ft.x = sx / n; ft.z = sz / n; ft.spread = 0;
+  for (const c of group) ft.spread = Math.max(ft.spread, Math.hypot(c.x - ft.x, c.z - ft.z));
 }
 function pickDirectorFocus() {
   if (race.player || focusLock || rig.finishShot) return focus;
