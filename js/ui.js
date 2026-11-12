@@ -35,6 +35,7 @@ const seg = (opts, cur, on) => el('div', { class: 'seg' }, opts.map(([v, label])
 const chip = (c) => el('i', { class: 'chip', style: `background:${c}` });
 const ord = (n) => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 const AIDS = [['full', 'Auto gas + brake'], ['gas', 'Auto gas'], ['none', 'Manual']];
+const CONTROLS = 'Touch: ◀ ▶ steer, BRAKE, ⚡ boost (GAS appears in Manual). Keyboard: arrows/WASD, Space boost, C camera, T autopilot, R reset, P pause, M mute. In the Mini Circuit view drag to rotate and pinch/scroll to zoom.';
 const MUSIC = [['on', '🎵 Built-in'], ['spotify', '🟢 Spotify'], ['off', 'Off']];
 
 export class Menus {
@@ -214,7 +215,8 @@ export class Menus {
         el('div', {}, el('div', { class: 'label', style: 'margin-top:0' }, 'Music'), this.musicPicker(re)),
         el('div', { class: 'row' }, this.btn(s.sound ? '🔊 Sound on' : '🔇 Sound off', 'white small', () => { s.sound = !s.sound; re(); }), this.btn('↺ Restart', 'white small', () => a.restart())),
         el('div', { class: 'row' }, this.btn('💾 Save & quit', 'blue small', () => a.quit(true)), this.btn('Quit', 'red small', () => a.quit(false))),
-        el('p', { class: 'note' }, ses.kind === 'champ' ? 'Quitting without saving keeps your championship at the start of this round.' : 'Keys: arrows/WASD drive · Space boost · C camera · T autopilot · R reset · P pause'))), true);
+        ses.kind === 'champ' && el('p', { class: 'note', style: 'margin:0' }, 'Quitting without saving keeps your championship at the start of this round.'),
+        el('div', {}, el('div', { class: 'label', style: 'margin-top:0' }, 'Controls'), el('p', { class: 'note', style: 'margin:0' }, CONTROLS)))), true);
   }
 
   settings(back) {
@@ -229,7 +231,7 @@ export class Menus {
         el('div', { class: 'label' }, 'Default driving camera'), seg(CAM_MODES.slice(0, 5).map((m) => [m.id, `${m.icon} ${m.name}`]), s.cam, (v) => { s.cam = v; re(); }),
         el('div', { class: 'label' }, 'Graphics'), seg([['auto', 'Auto'], ['high', 'Sharp'], ['low', 'Fast']], s.quality, (v) => { s.quality = v; re(); }),
         el('div', { class: 'label' }, 'Controls'),
-        el('p', { class: 'note', style: 'margin:0' }, 'Touch: ◀ ▶ steer, BRAKE, ⚡ boost (GAS appears in Manual). Keyboard: arrows/WASD, Space boost, C camera, T autopilot, R reset, P pause. In the Mini Circuit view drag to rotate and pinch/scroll to zoom.'),
+        el('p', { class: 'note', style: 'margin:0' }, CONTROLS),
         el('div', { class: 'label' }, 'Saved data'), this.btn('Erase everything', 'white small', () => { if (confirm('Erase all championships, records and settings?')) { store.wipe(); re(); } }))));
   }
 }
