@@ -3,6 +3,14 @@
 A cute comic-style 3D grand prix game for the browser (desktop, iPhone, foldables). No build step, no assets:
 everything is generated in code with three.js (vendored in `js/lib`).
 
+**Play it: https://alexkli.github.io/toon-prix/**
+
+![Main menu over a live race](docs/menu.png)
+
+| Mini Circuit view | Driver's-eye view |
+| --- | --- |
+| ![Whole-circuit model-railway view of Coral Bay](docs/circuit.png) | ![Onboard view from the cockpit](docs/driver.png) |
+
 Run: serve this folder over HTTP (ES modules need it), e.g. `python3 -m http.server 8765`, then open
 `http://localhost:8765/`. On iPhone use Share → Add to Home Screen for true full screen.
 
