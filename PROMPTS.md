@@ -18,7 +18,7 @@ The whole game came out of this one conversation.
 3. > the spotify player only plays previews. how do I login? the mini player does not show a login button, can it be added?
 
 4. > 1. no, drop the login button (does not work for me, after login it still only plays previews, in safari)
-   > 2. yes. spotify app client id: 1f5fcf0f083740de92b6f925db02ed74
+   > 2. yes. spotify app client id: 1234567890
 
 5. > can you change the onboard cam to have the view of the driver itself, ie. not show their helmet
 
@@ -36,19 +36,6 @@ The whole game came out of this one conversation.
 
 12. > in watch mode, when they are finishing, it now jumps quickly from pointing at P2 to P3 and so on. when those are close together the screen jumps, although all those cars are already on screen. don't jump in case multiple cars cross the finish line close together, keep it smooth
 
-13. > where is the local checkout of this git repo?
+13. > add screenshots to the readme. main screen, full circuit view, racing driver view
 
-14. > add screenshots to the readme. main screen, full circuit view, racing driver view
-
-15. > add a race replay feature
-
-16. > add a note to the readme this was created with Claude Fable 5.2
-
-17. > I don't like the main screen screenshot. the one car is behind the title text, making it look confusing, and there is a lot of grey asphalt at the bottom. the track in the background is great though (trees, windmill). choose a scene where it's all better balanced
-
-18. > where is this git repo on my local computer?
-
-19. > can you check it out under /kode/github
-    > and create a project in bb for it
-
-20. > add a new PROMPTS.md to the repo which has all my prompts from this thread? the original one (most important), and then all my further tweaks
+14. > add a race replay feature
