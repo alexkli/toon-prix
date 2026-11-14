@@ -27,4 +27,4 @@ Code map: `data.js` (teams, drivers, circuits) · `trackmath.js` (spline, racing
 
 ---
 
-Created with Claude Fable 5.2 (Anthropic), from design and feedback by Alexander Klimetschek. All code, circuits, art and music were generated in conversation; no hand-written code or external assets apart from three.js.
+Created with Claude Fable 5.2 (Anthropic), from design and feedback by Alexander Klimetschek. All code, circuits, art and music were generated in conversation; no hand-written code or external assets apart from three.js. Every prompt used is in [PROMPTS.md](PROMPTS.md).
